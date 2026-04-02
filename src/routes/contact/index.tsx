@@ -17,6 +17,7 @@ export const Route = createFileRoute('/contact/')({
 
 // 2. Component Giao diện chính
 function ContactPage() {
+
   return (
     <div className="min-h-screen pt-32 pb-24 px-4 flex flex-col items-center">
       

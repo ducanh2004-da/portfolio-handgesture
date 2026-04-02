@@ -1,4 +1,5 @@
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
+import { useEffect, useRef, useState } from 'react'
+import { HeadContent, Scripts, createRootRoute, useRouter } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import Footer from '../components/Footer'
@@ -11,28 +12,79 @@ const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getIte
 export const Route = createRootRoute({
   head: () => ({
     meta: [
-      {
-        charSet: 'utf-8',
-      },
-      {
-        name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
-      },
-      {
-        title: "Team's Portfolio",
-      },
+      { charSet: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { title: "Team's Portfolio" },
     ],
     links: [
-      {
-        rel: 'stylesheet',
-        href: appCss,
-      },
+      { rel: 'stylesheet', href: appCss },
     ],
   }),
   shellComponent: RootDocument,
 })
 
+// 1. Định nghĩa mảng thứ tự các trang để điều hướng qua lại
+const PAGE_ORDER = ['/', '/about', '/tech', '/contact']
+
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
+  const [gesture, setGesture] = useState<string>("NONE")
+  
+  // 2. Dùng useRef để lưu trữ đường dẫn hiện tại. 
+  // Điều này rất quan trọng để tránh lỗi "stale closure" của React khi chạy WebSocket ngầm.
+  const currentPathRef = useRef(router.state.location.pathname)
+
+  // Cập nhật ref mỗi khi route thay đổi
+  useEffect(() => {
+    // Chuẩn hóa path (vd: TanStack đôi khi trả về '/about/' thay vì '/about')
+    let path = router.state.location.pathname
+    if (path !== '/' && path.endsWith('/')) {
+      path = path.slice(0, -1)
+    }
+    currentPathRef.current = path
+  }, [router.state.location.pathname])
+
+  // 3. Khởi tạo WebSocket Listener
+  useEffect(() => {
+    const ws = new WebSocket("ws://localhost:8765")
+
+    ws.onopen = () => console.log("✅ TanStack Router: Connected to Vision Core!")
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+      const action = data.action
+      setGesture(action) // Cập nhật state để hiển thị lên UI
+
+      // Logic chuyển trang
+      if (action === "NEXT" || action === "PREV") {
+        const currentPath = currentPathRef.current
+        const currentIndex = PAGE_ORDER.indexOf(currentPath)
+
+        if (currentIndex !== -1) {
+          let nextIndex = currentIndex
+
+          if (action === "NEXT") {
+            // Vuốt trái -> Trang kế tiếp (có hiệu ứng vòng lặp về đầu)
+            nextIndex = (currentIndex + 1) % PAGE_ORDER.length
+          } else if (action === "PREV") {
+            // Vuốt phải -> Trang trước đó (có hiệu ứng vòng lặp về cuối)
+            nextIndex = (currentIndex - 1 + PAGE_ORDER.length) % PAGE_ORDER.length
+          }
+
+          // Kích hoạt chuyển trang
+          router.navigate({ to: PAGE_ORDER[nextIndex] })
+        }
+      }
+    }
+
+    ws.onclose = () => console.log("❌ Connection to Vision Core lost.")
+
+    // Dọn dẹp kết nối khi component unmount
+    return () => {
+      ws.close()
+    }
+  }, [router]) // Phụ thuộc vào router object
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -41,18 +93,21 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(79,184,178,0.24)]">
         <Header />
+        
+        {/* Widget hiển thị trạng thái cử chỉ - Thiết kế Cyberpunk/Tech */}
+        <div className="fixed bottom-6 right-6 z-50 bg-[#101216]/80 border border-[#00d8ff]/40 text-[#00d8ff] px-5 py-2 rounded-full shadow-[0_0_15px_rgba(0,216,255,0.15)] backdrop-blur-md flex items-center gap-3 transition-all duration-300">
+          <div className={`w-2 h-2 rounded-full ${gesture !== 'NONE' ? 'bg-[#00d8ff] animate-pulse' : 'bg-gray-600'}`}></div>
+          <span className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase">
+            {gesture}
+          </span>
+        </div>
+
         {children}
+        
         <Footer />
         <TanStackDevtools
-          config={{
-            position: 'bottom-right',
-          }}
-          plugins={[
-            {
-              name: 'Tanstack Router',
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-          ]}
+          config={{ position: 'bottom-right' }}
+          plugins={[{ name: 'Tanstack Router', render: <TanStackRouterDevtoolsPanel /> }]}
         />
         <Scripts />
       </body>

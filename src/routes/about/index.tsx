@@ -1,5 +1,7 @@
 // file: routes/about.tsx
+import * as React from 'react';
 import { createFileRoute } from '@tanstack/react-router'
+import DialogCard from '#/components/DialogCard'
 
 // 1. Định nghĩa Route cho TanStack Start
 export const Route = createFileRoute('/about/')({
@@ -15,28 +17,40 @@ export const Route = createFileRoute('/about/')({
 // 2. Dữ liệu thành viên nhóm
 const teamMembers = [
   {
-    name: 'Alex Thorne',
-    role: 'LEAD CV ARCHITECT',
-    // Dùng ảnh placeholder tạm thời, bạn thay bằng đường dẫn ảnh thực tế nhé
-    imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
-    isOffset: false, // Dùng để quyết định thẻ này có bị đẩy xuống tạo hiệu ứng so le không
+    name: 'Do Duc Anh',
+    role: 'WEB DEVELOPER & DIGITAL IMAGE ENGINEER',
+    imageUrl: 'https://ik.imagekit.io/q4phit8d9e/teammates/DucAnh.png?tr=w-auto,h-auto,fo-auto',
+    isOffset: false, 
   },
   {
-    name: 'Sarah Chen',
-    role: 'NEURAL MAPPING SPECIALIST',
-    imageUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=600&q=80',
-    isOffset: true, // Thẻ ở giữa được đẩy xuống dưới
+    name: 'Le Van',
+    role: 'BACKEND DEVELOPER & DIGITAL IMAGE ENGINEER',
+    imageUrl: 'https://ik.imagekit.io/q4phit8d9e/teammates/LeVan.png?tr=w-auto,h-auto,fo-auto',
+    isOffset: true, 
   },
   {
-    name: 'Marcus Volkov',
-    role: 'INTERACTION DESIGNER',
-    imageUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=600&q=80',
+    name: 'Pham Thanh Phong',
+    role: 'COMPUTER VISION & DIGITAL IMAGE ENGINEER',
+    imageUrl: 'https://ik.imagekit.io/q4phit8d9e/teammates/Phong.png?tr=w-auto,h-auto,fo-auto',
     isOffset: false,
   },
 ]
 
 // 3. Component giao diện chính
 function AboutPage() {
+  // Thay vì lưu boolean, ta lưu luôn dữ liệu của thành viên được chọn
+  const [selectedMember, setSelectedMember] = React.useState<any>(null);
+  
+  // Mở dialog và set dữ liệu thành viên
+  const handleClickOpen = (member: any) => {
+    setSelectedMember(member);
+  };
+
+  // Đóng dialog thì reset về null
+  const handleClose = () => {
+    setSelectedMember(null);
+  };
+
   return (
     <div className="min-h-screen pt-32 pb-24 px-8">
       <div className="max-w-7xl mx-auto">
@@ -57,13 +71,13 @@ function AboutPage() {
           </p>
         </div>
 
-        {/* Phần Grid hiển thị thành viên */}
+        {/* Phần Grid hiển thị thành viên - Đổi thành thẻ div thông thường */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
           {teamMembers.map((member, index) => (
             <div 
               key={index} 
-              // Thêm margin-top cho thẻ ở giữa để tạo hiệu ứng so le (staggered) trên màn hình lớn
-              className={`relative rounded-2xl overflow-hidden group aspect-[3/4] ${
+              onClick={() => handleClickOpen(member)} // Bắt sự kiện click ở đây
+              className={`relative rounded-2xl overflow-hidden group aspect-[3/4] cursor-pointer ${
                 member.isOffset ? 'md:mt-16' : ''
               }`}
             >
@@ -89,6 +103,13 @@ function AboutPage() {
             </div>
           ))}
         </div>
+
+        {/* Gọi component Dialog và truyền trạng thái xuống */}
+        <DialogCard 
+          open={Boolean(selectedMember)} // Nếu có member được chọn -> open = true
+          onClose={handleClose} 
+          member={selectedMember} 
+        />
         
       </div>
     </div>
