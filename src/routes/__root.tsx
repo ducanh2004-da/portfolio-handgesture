@@ -55,7 +55,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       const action = data.action
       setGesture(action) // Cập nhật state để hiển thị lên UI
 
-      // Logic chuyển trang
+      // Logic chuyển trang (NEXT / PREV)
       if (action === "NEXT" || action === "PREV") {
         const currentPath = currentPathRef.current
         const currentIndex = PAGE_ORDER.indexOf(currentPath)
@@ -64,26 +64,38 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           let nextIndex = currentIndex
 
           if (action === "NEXT") {
-            // Vuốt trái -> Trang kế tiếp (có hiệu ứng vòng lặp về đầu)
             nextIndex = (currentIndex + 1) % PAGE_ORDER.length
           } else if (action === "PREV") {
-            // Vuốt phải -> Trang trước đó (có hiệu ứng vòng lặp về cuối)
             nextIndex = (currentIndex - 1 + PAGE_ORDER.length) % PAGE_ORDER.length
           }
 
-          // Kích hoạt chuyển trang
           router.navigate({ to: PAGE_ORDER[nextIndex] })
         }
+      }
+
+      // Logic cuộn trang (SCROLL UP / SCROLL DOWN)
+      // Sử dụng behavior: 'smooth' để trải nghiệm cuộn được mượt mà hơn
+      if (action === "SCROLL UP") {
+        window.scrollBy({ 
+          top: -150, // Điều chỉnh số này (px) để thay đổi tốc độ/độ dài mỗi lần cuộn
+          left: 0, 
+          behavior: 'smooth' 
+        });
+      } else if (action === "SCROLL DOWN") {
+        window.scrollBy({ 
+          top: 150, 
+          left: 0, 
+          behavior: 'smooth' 
+        });
       }
     }
 
     ws.onclose = () => console.log("❌ Connection to Vision Core lost.")
 
-    // Dọn dẹp kết nối khi component unmount
     return () => {
       ws.close()
     }
-  }, [router]) // Phụ thuộc vào router object
+  }, [router])
 
   return (
     <html lang="en" suppressHydrationWarning>
